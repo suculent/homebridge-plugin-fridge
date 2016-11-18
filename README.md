@@ -2,7 +2,7 @@
 
 Running MQTT server on localhost. No authentication used so far.
 
-Installation
+## Installation
 
     git clone https://github.com/suculent/homebridge-plugin-fridge.git
     cd homebridge-plugin-fridge/
@@ -36,7 +36,9 @@ Restart your Homebridge now.
     MQTT connected, subscribing to: /fridge
     
 
+## Usage
 
-Publish to channels /fridge/open and /fridge/closed now.
+Publish to MQTT channels /fridge/open and /fridge/closed now.
+If you don't know how, install MQTT.fx and try again.
 
 Add 'Homebridge-IoT' on your iPhone as a new Homekit accessory. Fridge Sensor should appear.
