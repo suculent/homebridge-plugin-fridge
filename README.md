@@ -1,14 +1,32 @@
+## Purpose
+
+This is a plugin for Homebridge, that responds to arbitrary MQTT broker and serves as a Apple HomeKit Sensor 
+
+
 ## Requirements
 
-Running MQTT server on localhost. No authentication used so far.
+* Running MQTT server on localhost. No authentication used so far.
+* GIT
+* Node.js, Node Package Manager, Homebridge
+
 
 ## Installation
 
+Install this as a homebridge plugin on the device where you run homebridge. You can redirect 'localhost' to a MQTT server you are using, if on other device. In my case, both are running on Raspberry PI.
+
     git clone https://github.com/suculent/homebridge-plugin-fridge.git
     cd homebridge-plugin-fridge/
-    sudo npm install -g .
+    sudo npm install -g .        
 
-Restart your Homebridge now.
+Troubleshooting npm installation:
+
+    In casse of issues, install following dependencies:
+    
+    npm install -g mqtt --save
+    npm install -g mdns --save
+    npm install -g querystring --save
+
+Re/start your Homebridge now.
 
     homebridge
 
@@ -42,3 +60,18 @@ Publish to MQTT channels /fridge/open and /fridge/closed now.
 If you don't know how, install MQTT.fx and try again.
 
 Add 'Homebridge-IoT' on your iPhone as a new Homekit accessory. Fridge Sensor should appear.
+
+### Sample Minimal Homebridge Configuration
+
+```
+ "accessories" : [
+    {
+      "accessory" : "FridgeSensor",
+      "name" : "FridgeSensor",
+      "description" : "FridgeSensor",
+      "pins" : {
+        "Fridge: Sensor A" : 0
+      }
+    }
+  ]
+```
