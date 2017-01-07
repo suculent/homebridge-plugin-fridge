@@ -1,7 +1,6 @@
 ## Purpose
 
-This is a plugin for Homebridge, that responds to arbitrary MQTT broker and serves as a Apple HomeKit Sensor 
-
+This is a plugin for Homebridge, that provides virtual Temperature and Humidity sensor using data from specific MQTT channel.
 
 ## Requirements
 
@@ -14,64 +13,31 @@ This is a plugin for Homebridge, that responds to arbitrary MQTT broker and serv
 
 Install this as a homebridge plugin on the device where you run homebridge. You can redirect 'localhost' to a MQTT server you are using, if on other device. In my case, both are running on Raspberry PI.
 
-    git clone https://github.com/suculent/homebridge-plugin-fridge.git
-    cd homebridge-plugin-fridge/
+    git clone https://github.com/suculent/homebridge-plugin-dht.git
+    cd homebridge-plugin-dht/
     sudo npm install -g .        
-
-Troubleshooting npm installation:
-
-    In casse of issues, install following dependencies:
-    
-    npm install -g mqtt --save
-    npm install -g mdns --save
-    npm install -g querystring --save
 
 Re/start your Homebridge now.
 
-    homebridge
-
-    Expected output:
-    
-    [11/18/2016, 6:43:58 PM] Loaded plugin: homebridge-fridge
-    homebridge API version: 2.1
-    Registering homebridge-fridge accessory FridgeSensory
-    [11/18/2016, 6:43:58 PM] Registering accessory 'homebridge-fridge.FridgeSensor'
-    [11/18/2016, 6:43:58 PM] ---
-    [11/18/2016, 6:43:58 PM] Loaded config.json with 1 accessories and 0 platforms.
-    [11/18/2016, 6:43:58 PM] ---
-    [11/18/2016, 6:43:58 PM] Loading 1 accessories...
-    [11/18/2016, 6:43:58 PM] [FridgeSensor] Initializing FridgeSensor accessory...
-    searching contact for pin named Fridge: Sensor A
-    Initializing mqtt://localhost MQTT broker with base channel /fridge
-    MQTT connecting to: mqtt://localhost
-    Scan this code with your HomeKit App on your iOS device to pair with Homebridge:
-                           
-        ┌────────────┐     
-        │ 123-45-678 │     
-        └────────────┘     
-                           
-    [11/18/2016, 6:43:58 PM] Homebridge is running on port 51826.
-    MQTT connected, subscribing to: /fridge
-    
 
 ## Usage
 
-Publish to MQTT channels /fridge/open and /fridge/closed now.
+Connect your IoT device (Arduino or ESP8266 with SHT21 sensor). Publishes by default to MQTT channel /sht/2.
 If you don't know how, install MQTT.fx and try again.
 
-Add 'Homebridge-IoT' on your iPhone as a new Homekit accessory. Fridge Sensor should appear.
+Add 'Homebridge-IoT' on your iPhone as a new Homekit accessory. Temperature Sensor should appear.
 
 ### Sample Minimal Homebridge Configuration
 
 ```
  "accessories" : [
     {
-      "accessory" : "FridgeSensor",
-      "name" : "FridgeSensor",
-      "description" : "FridgeSensor",
-      "pins" : {
-        "Fridge: Sensor A" : 0
-      }
+      "accessory" : "TempSensor",
+      "name" : "SHT21A",
+      "description" : "Temperature Sensor",
+      "device_identifier" : "SHT21A-12824453",
+      "mqtt_broker" : "mqtt://192.168.1.21",
+      "mqtt_channel" : "/sht/2/status"
     }
   ]
 ```
