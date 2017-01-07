@@ -1,6 +1,6 @@
 {
   "name" : "homebridge-dht",
-  "version" : "1.0.6",
+  "version" : "1.0.7",
   "description" : "DHT Sensor plugin for Homebridge",
   "main" : "index.js",
   "author" : "Matej Sychra",
