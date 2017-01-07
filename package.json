@@ -1,7 +1,7 @@
 {
-  "name" : "homebridge-fridge",
+  "name" : "homebridge-dht",
   "version" : "1.0.6",
-  "description" : "Fridge Sensor plugin for Homebridge",
+  "description" : "DHT Sensor plugin for Homebridge",
   "main" : "index.js",
   "author" : "Matej Sychra",
   "license" : "ISC",
@@ -11,7 +11,7 @@
   },
   "repository" : {
     "type" : "git",
-    "url" : "https://github.com/suculent/homebridge-plugin-fridge.git"
+    "url" : "https://github.com/suculent/homebridge-plugin-dht.git"
   },
   "keywords" : [
     "homebridge-plugin"

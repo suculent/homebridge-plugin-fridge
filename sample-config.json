@@ -1,23 +1,12 @@
 {
-  "name" : "homebridge-dht",
-  "version" : "1.0.6",
-  "description" : "DHT Sensor plugin for Homebridge",
-  "main" : "index.js",
-  "author" : "Matej Sychra",
-  "license" : "ISC",
-  "dependencies" : {
-    "mdns" : "^2.3.3",
-    "mqtt" : "^2.0.1"
-  },
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/suculent/homebridge-plugin-dht.git"
-  },
-  "keywords" : [
-    "homebridge-plugin"
-  ],
-  "engines" : {
-    "node" : ">=0.12.0",
-    "homebridge" : ">=0.2.0"
-  }
+  "accessories" : [
+    {
+      "accessory" : "TempSensor",
+      "name" : "SHT21A",
+      "description" : "Temperature Sensor",
+      "device_identifier" : "SHT21A-12824453",
+      "mqtt_broker" : "mqtt://192.168.1.21",
+      "mqtt_channel" : "/sht/2/status"
+    }
+  ]
 }
