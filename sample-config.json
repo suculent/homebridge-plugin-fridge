@@ -1,0 +1,12 @@
+{
+  "accessories" : [
+    {
+      "accessory" : "TempSensor",
+      "name" : "SHT21A",
+      "description" : "Temperature Sensor",
+      "device_identifier" : "SHT21A-12824453",
+      "mqtt_broker" : "mqtt://192.168.1.21",
+      "mqtt_channel" : "/sht/2/status"
+    }
+  ]
+}

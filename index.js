@@ -1,114 +1,176 @@
-// homebridge-fridge-sensor
+/*
+ * This HAP device connects to defined or default mqtt broker/channel and creates a temperature service(s).
+ */
 
-// npm install mqtt --save
-// npm install mdns --save
-// npm install querystring --save
+
+var Service, Characteristic;
+
+// should go from config
+var default_broker_address = 'mqtt://localhost'
+var default_mqtt_channel = "/sht/2"
 
 'use strict';
 
 var querystring = require('querystring');
 var http = require('http');
-
-// CONFIGURATION
-
-var broker_address = 'mqtt://localhost'
-var mqtt_channel = "/fridge"
-
-// MDNS
-
-var mdns = require('mdns')
 var mqtt = require('mqtt')
-var mqttClient
 
-const path = require('path');
+var mqttClient = null; // will be non-null if working
 
-let Service, Characteristic;
+module.exports = function(homebridge) {
+    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic;
+    homebridge.registerAccessory("homebridge-dht", "TempSensor", TempSensor);
+}
 
-module.exports = (homebridge) => {
-  console.log("homebridge API version: " + homebridge.version);
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
-  console.log('Registering homebridge-fridge accessory FridgeSensor')
-  homebridge.registerAccessory('homebridge-fridge', 'FridgeSensor', FridgeSensorPlugin);
-};
+function TempSensor(log, config) {
+  this.log = log;
 
-class FridgeSensorPlugin
-{
-  constructor(log, config) {
-    
-    this.log = log;
-    this.name = config.name;
-    this.state = false; // sensor state, will be updated by mqtt
-    
-    this.pins = config.pins || {
-      "Fridge: Sensor A": 0
+  this.name = config['name'] || "DHT Sensor";
+  this.mqttBroker = config['mqtt_broker'];
+  this.mqttChannel = config['mqtt_channel'];
+  this.shortIdentifier = config['device_identifier'];   
+  this.temperature = 0;
+  this.humidity = 0; 
+  
+  this.temperatureService = new Service.TemperatureSensor(this.name, "temperature")
+  this.temperatureService
+    .getCharacteristic(Characteristic.CurrentTemperature)
+    .on('get', this.getTemperature.bind(this))
+
+  this.humidityService = new Service.HumiditySensor(this.name, "humidity")
+  this.humidityService
+    .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+    .on('get', this.getHumidity.bind(this))
+
+  var that = this
+
+  this.getServices();
+
+  if (!this.mqttBroker) {
+      this.log.warn('Config is missing mqtt_broker, fallback to default.');        
+      this.mqttBroker = default_broker_address;
+      if (!this.mqttBroker.contains("mqtt://")) {
+          this.mqttBroker = "mqtt://" + this.mqttBroker;
+      }
+  }
+
+  if (!this.mqttChannel) {
+      this.log.warn('Config is missing mqtt_channel, fallback to default.');
+      this.mqttChannel = default_mqtt_channel;        
+  }
+
+  init_mqtt(this.mqttBroker, this.mqttChannel, this.temperatureService, this.humidityService);
+
+  /* Sends a JSON message to Elasticsearch database */
+  function elk(json_message)
+  {
+    var http = require('http');
+
+    var options = {
+      host: 'mini.local',
+      port: '9200',
+      path: '/telemetry-1/status',
+      method: 'POST'
     };
 
-    this.pin2contact = {};
-    this.contacts = [];
+    function callback(response) {
+      var str = ''
+      response.on('data', function (chunk) {
+        str += chunk;
+      });
 
-    for (let name of Object.keys(this.pins)) {
-      console.log('searching contact for pin named ' + name)
-      const pin = this.pins[name];      
-      const subtype = name; 
-      const contact = new Service.ContactSensor(name, subtype);
+      response.on('end', function () {
+        console.log(str);
+      });
+    };
 
-      contact
-      .getCharacteristic(Characteristic.ContactSensorState)
-      .setValue(this.state);
-
-      this.pin2contact[pin] = contact;
-      this.contacts.push(contact);
-    }
-
-    console.log("Initializing " + broker_address + " MQTT broker with base channel " + mqtt_channel)
-    this.init_mqtt(broker_address, mqtt_channel)
+    var elk = http.request(options, callback);
+    var data = JSON.stringify(json_message)
+    elk.write(data);
+    elk.end();
   }
 
-  init_mqtt(broker_address, channel) {   
-    console.log("MQTT connecting to: " + broker_address)
+  function init_mqtt(broker_address, channel, ts, hs) {
+    that.log("Connecting to mqtt broker: " + broker_address + " channel: "+channel)
     mqttClient = mqtt.connect(broker_address)
 
-    var that = this
+    //var that = this
 
     mqttClient.on('connect', function () {
-      console.log("MQTT connected, subscribing to: " + channel)
-      mqttClient.subscribe(channel + "/open")
-      mqttClient.subscribe(channel + "/closed")
-
-      // This is violation of standard. Exact following string is skipped by the client instead of parsing as JSON.
-      mqttClient.publish(channel, 'MQTT->Homebridge Gateway Started...')
+      that.log("MQTT connected, subscribing to: " + channel)
+      mqttClient.subscribe(channel)
     })
+
+    mqttClient.on('error', function () {
+      that.log("MQTT connected, subscribing to: " + channel)
+      mqttClient.subscribe(channel)
+    })
+
+    mqttClient.on('offline', function () {
+      that.log("MQTT connected, subscribing to: " + channel)
+      mqttClient.subscribe(channel)
+    })  
 
     mqttClient.on('message', function (topic, message) {
-      console.log("message: " + message.toString())
+      that.log("message: " + message.toString())
+      
+      if (topic == channel) {
 
-      var pin = 0
+        if (this.shortIdentifier == message.shortIdentifier) {
 
-      if (topic == (mqtt_channel + "/open")) {
-        this.state = true;
-        const contact = that.pin2contact[pin];
-        if (!contact) throw new Error(`received pin event for unconfigured pin: ${pin}`);
-        contact
-        .getCharacteristic(Characteristic.ContactSensorState)
-        .setValue(this.state);
+          var m = JSON.parse(message)
 
-        console.log("[processing] " + mqtt_channel + " is open.")
+          var t = m.temperature;
+          var h = m.humidity;
+
+          that.temperature = t;
+          this.temperature = t;
+
+          that.humidity = h;
+          this.humidity = h;
+
+          ts
+          .getCharacteristic(Characteristic.CurrentTemperature)
+          .setValue(this.temperature);
+
+          hs
+          .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+          .setValue(this.humidity)
+
+          console.log("[processing] " + channel + " to " + message)
+
+          elk(message)
+        } 
       }
 
-      if (topic == (mqtt_channel + "/closed")) {
-        this.state = false;
-        const contact = that.pin2contact[pin];
-        if (!contact) throw new Error(`received pin event for unconfigured pin: ${pin}`);
-        contact
-        .getCharacteristic(Characteristic.ContactSensorState)
-        .setValue(this.state);
-        console.log("[processing] " + mqtt_channel + " is closed.")
-      }
     })
   }
 
-  getServices() {
-    return this.contacts;
-  }
+} // end class
+
+TempSensor.prototype.getTemperature = function(callback) {
+    this.log('getTemperature callback(null, '+this.temperature+')');
+    callback(null, this.temperature);    
 }
+
+TempSensor.prototype.getHumidity = function(callback) {
+    this.log('getHumidity callback(null, '+this.humidity+')');
+    callback(null, this.humidity);
+}
+
+TempSensor.prototype.getServices = function() {
+
+    var informationService = new Service.AccessoryInformation();
+
+    informationService
+      .setCharacteristic(Characteristic.Manufacturer, "Page 42")
+      .setCharacteristic(Characteristic.Model, "Temperature Sensor")
+      .setCharacteristic(Characteristic.SerialNumber, "3");
+
+    return [this.temperatureService, this.humidityService, informationService];
+}
+
+process.on('uncaughtException', function(err) {
+  console.log('Caught exception: ' + err);
+});
