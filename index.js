@@ -28,7 +28,7 @@ module.exports = (homebridge) => {
   console.log("homebridge API version: " + homebridge.version);
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  console.log('Registering homebridge-fridge accessory FridgeSensory')
+  console.log('Registering homebridge-fridge accessory FridgeSensor')
   homebridge.registerAccessory('homebridge-fridge', 'FridgeSensor', FridgeSensorPlugin);
 };
 
